@@ -1,0 +1,47 @@
+version: '2'
+
+volumes:
+  nextcloud: ./nextcloud
+  db: ./db
+
+services:
+  db:
+    image: arm64v8/mysql:oracle
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    networks:
+      - internal_network
+    volumes:
+      - db:/var/lib/mysql
+    env_file:
+      - .env
+  
+  app:
+    # 也可以用 nextcloud:fpm
+    image: nextcloud:production-fpm
+    ports:
+      - 127.0.0.1:9000:9000
+    restart: always
+    networks:
+      - internal_network
+    depends_on:
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+    env_file:
+      - .env
+  
+  redis:
+    image: redis:latest
+    volumes:
+      - ./redis/data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+    networks:
+      - internal_network
+    env_file:
+      - .env
+
+
+networks:
+  internal_network:
